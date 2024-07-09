@@ -1,5 +1,3 @@
-import * as cdk from "aws-cdk-lib";
-
 interface GlobalIndex {
   indexName: string;
   partitionKey: string;
@@ -11,5 +9,4 @@ export interface DynamoTableProps {
   partitionKey: string;
   sortKey?: string;
   globalIndexes?: GlobalIndex[];
-  lambda: cdk.aws_lambda.Function;
 }

@@ -1,21 +1,46 @@
-import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { FunctionUrl, FunctionUrlAuthType } from "aws-cdk-lib/aws-lambda";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as s3 from "aws-cdk-lib/aws-s3";
+import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import * as cdk from "aws-cdk-lib";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import { DynamoTableProps } from "../types/dynamo";
 
 export class BudgetTrackerStack extends cdk.Stack {
   private readonly stackPreffix = "Budget";
 
+  private customLambda: lambda.Function;
+  private customApigateway: apigateway.RestApi;
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    this.customLambda = this.createCustomLambda();
+    this.createDynamoDbTables();
+
+    this.customApigateway = this.createApiGateway();
+    this.createApiGatewayResource();
+  }
+
+  private createCustomLambda() {
+
+    const functionName = this.stackPreffix.concat("Lambda");
+    const S3ObjectPath = "dist.zip";
+    const handlerPath = "dist/handlers/index.lambdaHandler";
+
     const deploymentBucket = this.createCustomeS3Bucket();
-    const budgetLambda = this.createCustomLambda(deploymentBucket);
-    this.createDynamoDbTables(budgetLambda);
+
+    const lambdaFn = new lambda.Function(this, functionName, {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      functionName,
+      code: lambda.Code.fromBucket(deploymentBucket, S3ObjectPath),
+      handler: handlerPath,
+    });
+
+    return lambdaFn;
   }
 
   private createCustomeS3Bucket() {
-    const s3 = cdk.aws_s3;
-
     const bucketName = (this.stackPreffix + "-lambda-bucket").toLowerCase();
 
     const bucket = new s3.Bucket(this, this.stackPreffix.concat("Bucket"), {
@@ -27,61 +52,27 @@ export class BudgetTrackerStack extends cdk.Stack {
     return bucket;
   }
 
-  private createCustomLambda(deploymentBucket: cdk.aws_s3.Bucket) {
-    const lambda = cdk.aws_lambda;
-
-    const functionName = this.stackPreffix.concat("Lambda");
-    const S3ObjectPath = "dist.zip";
-    const handlerPath = "dist/handlers/index.lambdaHandler";
-
-    const lambdaFn = new lambda.Function(this, functionName, {
-      runtime: lambda.Runtime.NODEJS_20_X,
-      functionName,
-      code: lambda.Code.fromBucket(deploymentBucket, S3ObjectPath),
-      handler: handlerPath,
-    });
-
-    const functionUrlName = this.stackPreffix.concat("LambdaUrl");
-
-    const lambdaUrl = new FunctionUrl(this, functionUrlName, {
-      function: lambdaFn,
-      authType: FunctionUrlAuthType.NONE,
-    });
-
-    new cdk.CfnOutput(this, "LambdaFunctionUrl", {
-      value: lambdaUrl.url,
-      description: "The URL of the Lambda Function",
-    });
-
-    return lambdaFn;
-  }
-
-  private createDynamoDbTables(lambda: cdk.aws_lambda.Function) {
+  private createDynamoDbTables() {
     this.createCustomDynamoTable({
       id: "Transactions",
       partitionKey: "userId",
       sortKey: "id",
-      lambda,
     });
 
     this.createCustomDynamoTable({
       id: "Categories",
       partitionKey: "userId",
       sortKey: "id",
-      lambda,
     });
 
     this.createCustomDynamoTable({
       id: "Settings",
       partitionKey: "userId",
       sortKey: "id",
-      lambda,
     });
   }
 
   private createCustomDynamoTable(tableProps: DynamoTableProps) {
-    const dynamodb = cdk.aws_dynamodb;
-
     const customTable = new dynamodb.Table(this, tableProps.id, {
       partitionKey: {
         name: tableProps.partitionKey,
@@ -110,6 +101,19 @@ export class BudgetTrackerStack extends cdk.Stack {
       });
     }
 
-    customTable.grantReadWriteData(tableProps.lambda);
+    customTable.grantReadWriteData(this.customLambda);
+  }
+
+  private createApiGateway() {
+    return new apigateway.RestApi(this, "BudgetRestApi", {
+      restApiName: "BudgetRestApi",
+    });
+  }
+
+  private createApiGatewayResource() {
+    this.customApigateway.root.addProxy({
+      anyMethod: true,
+      defaultIntegration: new apigateway.LambdaIntegration(this.customLambda),
+    })
   }
 }
