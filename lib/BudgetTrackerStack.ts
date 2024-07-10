@@ -19,7 +19,7 @@ export class BudgetTrackerStack extends cdk.Stack {
     this.createDynamoDbTables();
 
     this.customApigateway = this.createApiGateway();
-    this.createApiGatewayResource();
+    this.createApiGatewayResources();
   }
 
   private createCustomLambda() {
@@ -105,15 +105,58 @@ export class BudgetTrackerStack extends cdk.Stack {
   }
 
   private createApiGateway() {
-    return new apigateway.RestApi(this, "BudgetRestApi", {
-      restApiName: "BudgetRestApi",
+    return new apigateway.LambdaRestApi(this, "BudgetLambdaRestApi", {
+      handler: this.customLambda,
+      proxy: false,
+      restApiName: "BudgetLambdaRestApi",
     });
   }
 
-  private createApiGatewayResource() {
-    this.customApigateway.root.addProxy({
-      anyMethod: true,
-      defaultIntegration: new apigateway.LambdaIntegration(this.customLambda),
-    })
+  private createApiGatewayResources() {
+    const rootResource = this.customApigateway.root;
+    rootResource.addMethod("GET");
+
+    const settingsResource = rootResource.addResource("settings");
+    settingsResource.addMethod("GET");
+    settingsResource.addMethod("PATCH");
+
+    // /categories
+    const categoriesResource = rootResource.addResource("categories");
+    categoriesResource.addMethod("GET");
+    categoriesResource.addMethod("POST");
+    
+    // /categories/{categoryId}
+    const categoryResource = categoriesResource.addResource("{categoryId}");
+    categoryResource.addMethod("PATCH");
+    categoryResource.addMethod("DELETE");
+
+    // /transactions
+    const transactionsResource = rootResource.addResource("transactions");
+    transactionsResource.addMethod("GET");
+    transactionsResource.addMethod("POST");
+
+    // /transactions/{transactionId}
+    const transactionResource = transactionsResource.addResource("{transactionId}");
+    transactionResource.addMethod("PATCH");
+    transactionResource.addMethod("DELETE");
+
+    // /reports
+    const reports = rootResource.addResource("reports");
+
+    // /reports/history-periods
+    const historyPeriods = reports.addResource("history-periods");
+    historyPeriods.addMethod("GET");
+
+    // /reports/history-data
+    const historyData = reports.addResource("history-data");
+    historyData.addMethod("GET");
+
+    // /reports/balance
+    const balance = reports.addResource("balance");
+    balance.addMethod("GET");
+
+    // /reports/categories-overview
+    const categoriesOverview = reports.addResource("categories-overview");
+    categoriesOverview.addMethod("GET");
   }
 }
