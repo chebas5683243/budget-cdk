@@ -35,6 +35,12 @@ export class BudgetTrackerStack extends cdk.Stack {
       functionName,
       code: lambda.Code.fromBucket(deploymentBucket, S3ObjectPath),
       handler: handlerPath,
+      environment: {
+        SETTINGS_TABLE: "Settings",
+        TRANSACTIONS_TABLE: "Transactions",
+        CATEGORIES_TABLE: "Categories",
+        DEFAULT_USER_ID: "6c8c3b66-ecc4-46af-aa1e-e762dc80b3de"
+      }
     });
 
     return lambdaFn;
