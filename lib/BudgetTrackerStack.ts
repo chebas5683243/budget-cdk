@@ -74,7 +74,6 @@ export class BudgetTrackerStack extends cdk.Stack {
     this.createCustomDynamoTable({
       id: "Settings",
       partitionKey: "userId",
-      sortKey: "id",
     });
   }
 
