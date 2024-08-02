@@ -23,7 +23,6 @@ export class BudgetTrackerStack extends cdk.Stack {
   }
 
   private createCustomLambda() {
-
     const functionName = this.stackPreffix.concat("Lambda");
     const S3ObjectPath = "dist.zip";
     const handlerPath = "dist/handlers/index.lambdaHandler";
@@ -39,8 +38,8 @@ export class BudgetTrackerStack extends cdk.Stack {
         SETTINGS_TABLE: "Settings",
         TRANSACTIONS_TABLE: "Transactions",
         CATEGORIES_TABLE: "Categories",
-        DEFAULT_USER_ID: "6c8c3b66-ecc4-46af-aa1e-e762dc80b3de"
-      }
+        DEFAULT_USER_ID: "6c8c3b66-ecc4-46af-aa1e-e762dc80b3de",
+      },
     });
 
     return lambdaFn;
@@ -63,6 +62,12 @@ export class BudgetTrackerStack extends cdk.Stack {
       id: "Transactions",
       partitionKey: "userId",
       sortKey: "id",
+      globalIndexes: [
+        {
+          indexName: "transactionDate",
+          partitionKeyName: "transactionDate",
+        },
+      ],
     });
 
     this.createCustomDynamoTable({
@@ -96,11 +101,14 @@ export class BudgetTrackerStack extends cdk.Stack {
         customTable.addGlobalSecondaryIndex({
           indexName: index.indexName,
           partitionKey: {
-            name: index.partitionKey,
-            type: dynamodb.AttributeType.STRING,
+            name: index.partitionKeyName,
+            type: index.partitionKeyType || dynamodb.AttributeType.STRING,
           },
-          sortKey: index.sortKey
-            ? { name: index.sortKey, type: dynamodb.AttributeType.STRING }
+          sortKey: index.sortKeyName
+            ? {
+                name: index.sortKeyName,
+                type: index.sortKeyType || dynamodb.AttributeType.STRING,
+              }
             : undefined,
         });
       });
@@ -129,7 +137,7 @@ export class BudgetTrackerStack extends cdk.Stack {
     const categoriesResource = rootResource.addResource("categories");
     categoriesResource.addMethod("GET");
     categoriesResource.addMethod("POST");
-    
+
     // /categories/{categoryId}
     const categoryResource = categoriesResource.addResource("{categoryId}");
     categoryResource.addMethod("PATCH");
@@ -141,7 +149,8 @@ export class BudgetTrackerStack extends cdk.Stack {
     transactionsResource.addMethod("POST");
 
     // /transactions/{transactionId}
-    const transactionResource = transactionsResource.addResource("{transactionId}");
+    const transactionResource =
+      transactionsResource.addResource("{transactionId}");
     transactionResource.addMethod("PATCH");
     transactionResource.addMethod("DELETE");
 
