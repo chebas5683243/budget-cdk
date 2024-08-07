@@ -64,8 +64,11 @@ export class BudgetTrackerStack extends cdk.Stack {
       sortKey: "id",
       globalIndexes: [
         {
-          indexName: "transactionDate",
-          partitionKeyName: "transactionDate",
+          indexName: "userId-transactionDate",
+          partitionKeyName: "userId",
+          partitionKeyType: dynamodb.AttributeType.STRING,
+          sortKeyName: "transactionDate",
+          sortKeyType: dynamodb.AttributeType.NUMBER,
         },
       ],
     });
@@ -80,6 +83,21 @@ export class BudgetTrackerStack extends cdk.Stack {
       id: "Settings",
       partitionKey: "userId",
     });
+
+    // this.createCustomDynamoTable({
+    //   id: "Loans",
+    //   partitionKey: "customerId",
+    //   sortKey: "id",
+    //   globalIndexes: [
+    //     {
+    //       indexName: "statusCreationDate",
+    //       partitionKeyName: "status",
+    //       partitionKeyType: dynamodb.AttributeType.STRING,
+    //       sortKeyName: "creationDate",
+    //       sortKeyType: dynamodb.AttributeType.NUMBER,
+    //     },
+    //   ],
+    // });
   }
 
   private createCustomDynamoTable(tableProps: DynamoTableProps) {
