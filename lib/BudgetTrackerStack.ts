@@ -83,21 +83,6 @@ export class BudgetTrackerStack extends cdk.Stack {
       id: "Settings",
       partitionKey: "userId",
     });
-
-    // this.createCustomDynamoTable({
-    //   id: "Loans",
-    //   partitionKey: "customerId",
-    //   sortKey: "id",
-    //   globalIndexes: [
-    //     {
-    //       indexName: "statusCreationDate",
-    //       partitionKeyName: "status",
-    //       partitionKeyType: dynamodb.AttributeType.STRING,
-    //       sortKeyName: "creationDate",
-    //       sortKeyType: dynamodb.AttributeType.NUMBER,
-    //     },
-    //   ],
-    // });
   }
 
   private createCustomDynamoTable(tableProps: DynamoTableProps) {
@@ -182,10 +167,6 @@ export class BudgetTrackerStack extends cdk.Stack {
     // /reports/history-data
     const historyData = reports.addResource("history-data");
     historyData.addMethod("GET");
-
-    // /reports/balance
-    const balance = reports.addResource("balance");
-    balance.addMethod("GET");
 
     // /reports/categories-overview
     const categoriesOverview = reports.addResource("categories-overview");
