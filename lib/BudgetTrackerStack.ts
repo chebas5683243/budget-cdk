@@ -10,12 +10,16 @@ export class BudgetTrackerStack extends cdk.Stack {
   private readonly stackPreffix = "Budget";
 
   private customLambda: lambda.Function;
+  private tokenAuthorizer: apigateway.TokenAuthorizer;
   private customApigateway: apigateway.RestApi;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     this.customLambda = this.createCustomLambda();
+
+    this.tokenAuthorizer = this.createTokenAuthorizer();
+
     this.createDynamoDbTables();
 
     this.customApigateway = this.createApiGateway();
@@ -38,7 +42,6 @@ export class BudgetTrackerStack extends cdk.Stack {
         SETTINGS_TABLE: "Settings",
         TRANSACTIONS_TABLE: "Transactions",
         CATEGORIES_TABLE: "Categories",
-        DEFAULT_USER_ID: "6c8c3b66-ecc4-46af-aa1e-e762dc80b3de",
       },
     });
 
@@ -55,6 +58,13 @@ export class BudgetTrackerStack extends cdk.Stack {
     });
 
     return bucket;
+  }
+
+  private createTokenAuthorizer() {
+    return new apigateway.TokenAuthorizer(this, "lambdaAuthorizer", {
+      handler: this.customLambda,
+      authorizerName: "lambdaAuthorizer",
+    });
   }
 
   private createDynamoDbTables() {
@@ -125,6 +135,9 @@ export class BudgetTrackerStack extends cdk.Stack {
       handler: this.customLambda,
       proxy: false,
       restApiName: "BudgetLambdaRestApi",
+      defaultMethodOptions: {
+        authorizer: this.tokenAuthorizer,
+      },
     });
   }
 
