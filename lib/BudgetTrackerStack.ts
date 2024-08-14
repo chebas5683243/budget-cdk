@@ -138,6 +138,10 @@ export class BudgetTrackerStack extends cdk.Stack {
       defaultMethodOptions: {
         authorizer: this.tokenAuthorizer,
       },
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+      },
     });
   }
 
