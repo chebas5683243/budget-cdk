@@ -135,9 +135,6 @@ export class BudgetTrackerStack extends cdk.Stack {
       handler: this.customLambda,
       proxy: false,
       restApiName: "BudgetLambdaRestApi",
-      defaultMethodOptions: {
-        authorizer: this.tokenAuthorizer,
-      },
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
@@ -145,48 +142,70 @@ export class BudgetTrackerStack extends cdk.Stack {
     });
   }
 
+  private addPublicMethod(resource: apigateway.IResource, httpMethod: string) {
+    resource.addMethod(httpMethod, undefined, {
+      authorizer: undefined,
+    });
+  }
+
+  private addProtectedMethod(
+    resource: apigateway.IResource,
+    httpMethod: string
+  ) {
+    resource.addMethod(httpMethod, undefined, {
+      authorizer: this.tokenAuthorizer,
+    });
+  }
+
   private createApiGatewayResources() {
     const rootResource = this.customApigateway.root;
-    rootResource.addMethod("GET");
+    this.addProtectedMethod(rootResource, "GET");
 
     const settingsResource = rootResource.addResource("settings");
-    settingsResource.addMethod("GET");
-    settingsResource.addMethod("PATCH");
+    this.addProtectedMethod(settingsResource, "GET");
+    this.addProtectedMethod(settingsResource, "PATCH");
 
     // /categories
     const categoriesResource = rootResource.addResource("categories");
-    categoriesResource.addMethod("GET");
-    categoriesResource.addMethod("POST");
+    this.addProtectedMethod(categoriesResource, "GET");
+    this.addProtectedMethod(categoriesResource, "POST");
 
     // /categories/{categoryId}
     const categoryResource = categoriesResource.addResource("{categoryId}");
-    categoryResource.addMethod("PATCH");
-    categoryResource.addMethod("DELETE");
+    this.addProtectedMethod(categoryResource, "PATCH");
+    this.addProtectedMethod(categoryResource, "DELETE");
 
     // /transactions
     const transactionsResource = rootResource.addResource("transactions");
-    transactionsResource.addMethod("GET");
-    transactionsResource.addMethod("POST");
+    this.addProtectedMethod(transactionsResource, "GET");
+    this.addProtectedMethod(transactionsResource, "POST");
 
     // /transactions/{transactionId}
     const transactionResource =
       transactionsResource.addResource("{transactionId}");
-    transactionResource.addMethod("PATCH");
-    transactionResource.addMethod("DELETE");
+    this.addProtectedMethod(transactionResource, "PATCH");
+    this.addProtectedMethod(transactionResource, "DELETE");
 
     // /reports
     const reports = rootResource.addResource("reports");
 
     // /reports/history-periods
     const historyPeriods = reports.addResource("history-periods");
-    historyPeriods.addMethod("GET");
+    this.addProtectedMethod(historyPeriods, "GET");
 
     // /reports/history-data
     const historyData = reports.addResource("history-data");
-    historyData.addMethod("GET");
+    this.addProtectedMethod(historyData, "GET");
 
     // /reports/categories-overview
     const categoriesOverview = reports.addResource("categories-overview");
-    categoriesOverview.addMethod("GET");
+    this.addProtectedMethod(categoriesOverview, "GET");
+
+    // /webhooks
+    const webhooks = rootResource.addResource("webhooks");
+
+    // /webhooks/clerk
+    const clerkWebhook = webhooks.addResource("clerk");
+    this.addPublicMethod(clerkWebhook, "POST");
   }
 }
