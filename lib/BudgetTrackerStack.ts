@@ -80,6 +80,13 @@ export class BudgetTrackerStack extends cdk.Stack {
           sortKeyName: "transactionDate",
           sortKeyType: dynamodb.AttributeType.NUMBER,
         },
+        {
+          indexName: "userId-categoryId",
+          partitionKeyName: "userId",
+          partitionKeyType: dynamodb.AttributeType.STRING,
+          sortKeyName: "categoryId",
+          sortKeyType: dynamodb.AttributeType.STRING,
+        },
       ],
     });
 
