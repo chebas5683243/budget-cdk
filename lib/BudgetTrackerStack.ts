@@ -6,6 +6,13 @@ import * as cdk from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import { DynamoTableProps } from "../types/dynamo";
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Headers":
+    "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+  "Access-Control-Allow-Origin": "'*'",
+  "Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'",
+};
+
 export class BudgetTrackerStack extends cdk.Stack {
   private readonly stackPreffix = "Budget";
 
@@ -24,6 +31,7 @@ export class BudgetTrackerStack extends cdk.Stack {
 
     this.customApigateway = this.createApiGateway();
     this.createApiGatewayResources();
+    this.configureResponses();
   }
 
   private createCustomLambda() {
@@ -42,6 +50,8 @@ export class BudgetTrackerStack extends cdk.Stack {
         SETTINGS_TABLE: "Settings",
         TRANSACTIONS_TABLE: "Transactions",
         CATEGORIES_TABLE: "Categories",
+        AUTHORIZED_PARTIES:
+          "https://budget-tracker-web.vercel.app,http://localhost:3000",
       },
     });
 
@@ -145,6 +155,7 @@ export class BudgetTrackerStack extends cdk.Stack {
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: apigateway.Cors.DEFAULT_HEADERS,
       },
     });
   }
@@ -214,5 +225,23 @@ export class BudgetTrackerStack extends cdk.Stack {
     // /webhooks/clerk
     const clerkWebhook = webhooks.addResource("clerk");
     this.addPublicMethod(clerkWebhook, "POST");
+  }
+
+  private configureResponses() {
+    this.customApigateway.addGatewayResponse("Unauthorized", {
+      type: apigateway.ResponseType.UNAUTHORIZED,
+      statusCode: "401",
+      responseHeaders: CORS_HEADERS,
+    });
+    this.customApigateway.addGatewayResponse("ExpiredToken", {
+      type: apigateway.ResponseType.EXPIRED_TOKEN,
+      statusCode: "403",
+      responseHeaders: CORS_HEADERS,
+    });
+    this.customApigateway.addGatewayResponse("AccessDenied", {
+      type: apigateway.ResponseType.ACCESS_DENIED,
+      statusCode: "403",
+      responseHeaders: CORS_HEADERS,
+    });
   }
 }
